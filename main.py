@@ -5,11 +5,13 @@
 
 # nltk.download('stopwords')
 # nltk.download('punkt')
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import f1_score
-from sklearn.model_selection import train_test_split
-from funcs import  load_data
+# from sklearn.feature_extraction.text import TfidfVectorizer
+# from sklearn.linear_model import LogisticRegression
+# from sklearn.metrics import f1_score
+# from sklearn.model_selection import train_test_split
+# import matplotlib.pyplot as plt
+
+from funcs import  load_data, k_folds
 
 
 if __name__ == '__main__':
@@ -31,8 +33,8 @@ if __name__ == '__main__':
 
 
     # # Split the data into train and test sets
-    X_train,_, y_train , _ = train_test_split(train_data, train_target, test_size=0.2, random_state=42)
-    _ ,X_test, _,y_test = train_test_split(text_data, train_target, test_size=0.2, random_state=42)
+    # X_train,_, y_train , _ = train_test_split(train_data, train_target, test_size=0.2, random_state=42)
+    # _ ,X_test, _,y_test = train_test_split(text_data, train_target, test_size=0.2, random_state=42)
     # X_train,X_test, y_train ,y_test  = train_test_split(data['text'], train_target, test_size=0.2, random_state=42)
 
     # print(f'X_train = {X_train}\n\n')
@@ -44,15 +46,21 @@ if __name__ == '__main__':
     #     print(x)
 
     # # Vectorize the text data using TF-IDF
-    tfidf_vectorizer = TfidfVectorizer()
-    X_train_tfidf = tfidf_vectorizer.fit_transform(X_train)
-    X_test_tfidf = tfidf_vectorizer.transform(X_test)
+    # tfidf_vectorizer = TfidfVectorizer()
+    # X_train_tfidf = tfidf_vectorizer.fit_transform(X_train)
+    # X_test_tfidf = tfidf_vectorizer.transform(X_test)
 
-    # # Train a logistic regression model on the vectorized data
-    clf = LogisticRegression()
-    clf.fit(X_train_tfidf, y_train)
+    # # # Train a logistic regression model on the vectorized data
+    # clf = LogisticRegression()
+    # clf.fit(X_train_tfidf, y_train)
 
-    # # Evaluate the model using F1 score
-    y_pred = clf.predict(X_test_tfidf)
-    f1score = f1_score(y_test, y_pred, average='macro')
-    print('F1 score:', f1score)
+    # # # Evaluate the model using F1 score
+    # y_pred = clf.predict(X_test_tfidf)
+    # f1score = f1_score(y_test, y_pred, average='macro')
+    # print('F1 score:', f1score)
+
+    # k_folds(text_data,train_target)
+    k_folds(train_data,train_target)
+
+
+   
