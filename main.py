@@ -1,0 +1,77 @@
+# Import necessary libraries
+import pandas as pd
+import numpy as np
+import re
+import string
+import nltk
+# nltk.download('stopwords')
+# nltk.download('punkt')
+from nltk.corpus import stopwords
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import f1_score
+from sklearn.model_selection import train_test_split
+
+
+
+# Data preprocessing
+def clean_text(text):
+    # Remove punctuation
+    if isinstance(text, str) and not pd.isnull(text):
+
+        # print(f'{text}\n\n')
+        text = text.translate(str.maketrans("", "", string.punctuation))
+        # Convert text to lowercase
+        text = text.lower()
+        # Remove numbers
+        text = re.sub(r'\d+', '', text)
+        # Remove stopwords
+        stop_words = set(stopwords.words('english'))
+        text_tokens = nltk.word_tokenize(text)
+        filtered_text = [word for word in text_tokens if word not in stop_words]
+        # Join the words back into a string
+        text = ' '.join(filtered_text)
+    else:
+        text = ''
+    return text
+
+
+if __name__ == '__main__':
+    # Clean the text data
+    # train_data['text'] = train_data['text'].fillna({'text':''})
+    # Load the dataset
+    train_data = pd.read_csv('train.csv')
+    # train_data['selected_text'] = train_data['selected_text'].apply(lambda x: clean_text(x))
+    # train_data['text'] = train_data['text'].apply(lambda x: clean_text(x))
+
+    # train_features = train_data.drop( 'textID', axis=1)
+    # train_features = train_data.drop(['sentiment', 'textID'], axis=1)
+
+    # print(train_features)
+    # train_features = train_features.drop('species', axis=1)]
+
+    # print(f"text  = {train_data['text'].shape}")
+    # print(f"selected text = {train_data['selected_text'].shape}")
+    # print(f"sentiment = {train_data['sentiment'].shape}")
+    # print(f"text/selected = {train_data[['textID', 'selected_text']].shape(axis=1)}")
+
+    train_target = train_data['sentiment']
+
+
+    # # Split the data into train and test sets
+    X_train,X_test, y_train ,y_test = train_test_split(train_data[['text', 'selected_text']], train_target, test_size=0.3, random_state=42)
+    # # X_test, y_test = train_test_split(train_data['text'], train_data['sentiment'], test_size=0.2, random_state=42)
+
+    # # Vectorize the text data using TF-IDF
+    tfidf_vectorizer = TfidfVectorizer()
+    X_train_tfidf = tfidf_vectorizer.fit_transform(X_train)
+    X_test_tfidf = tfidf_vectorizer.transform(X_test)
+
+    # # Train a logistic regression model on the vectorized data
+    clf = LogisticRegression()
+    clf.fit(X_train_tfidf, y_train)
+
+    # # Evaluate the model using F1 score
+    # y_pred = clf.predict(X_test_tfidf)
+    # f1score = f1_score(y_test, y_pred, average='macro')
+    # print('F1 score:', f1score)
