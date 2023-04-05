@@ -11,7 +11,7 @@
 # from sklearn.model_selection import train_test_split
 # import matplotlib.pyplot as plt
 
-from funcs import  load_data, k_folds
+from funcs import  load_data, run
 
 
 if __name__ == '__main__':
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     # print('F1 score:', f1score)
 
     # k_folds(text_data,train_target)
-    k_folds(train_data,train_target)
+    run(train_data,train_target)
 
 
    

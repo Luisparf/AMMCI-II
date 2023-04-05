@@ -42,13 +42,13 @@ def load_data():
 
 ######################################################################################################
 
-def k_folds(data, target):
+def run(X, Y):
 
     kfolds = 5
     f1scores = []
 
     for i in range(kfolds):
-        X_train, X_test, y_train, y_test = train_test_split(data, target, test_size=0.2, random_state=i)
+        X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=i)
         tfidf_vectorizer = TfidfVectorizer()
         X_train_tfidf = tfidf_vectorizer.fit_transform(X_train)
         X_test_tfidf = tfidf_vectorizer.transform(X_test)
@@ -66,6 +66,6 @@ def k_folds(data, target):
     plt.ylabel('F1 Score')
     plt.title(f'F1 Scores of {kfolds}-fold Cross Validation')
     plt.xticks(range(kfolds))
-    plt.axhline(y=mean_f1score, color='r', linestyle='-', label=f'Average F1 Score {mean_f1score* 100:.2f} %')
+    plt.axhline(y=mean_f1score, color='r', linestyle='--', label=f'Average F1 Score {mean_f1score* 100:.2f} %')
     plt.legend()
     plt.show()
