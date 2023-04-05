@@ -58,6 +58,29 @@ def run_tfidf(train_data, test_data, Y):
     f1scores_cmnb = []
     f1scores_crf = []
 
+    """
+    O primeiro passo é dividir o conjunto de dados em conjuntos de treinamento e teste, usando a função "train_test_split" da biblioteca "sklearn". 
+    O parâmetro "test_size" define a proporção do conjunto de teste em relação ao conjunto de dados total e "random_state" é usado para controlar a 
+        aleatoriedade da divisão de dados e garantir que os resultados sejam reproduzíveis.
+
+    Em seguida, o vetorizador Tf-idf é criado usando a função "TfidfVectorizer()" e é usado para transformar o conjunto de treinamento em um conjunto de vetores Tf-idf. 
+    Esse processo envolve a contagem de frequência das palavras em cada documento, a ponderação dessa frequência pela frequência inversa do documento em que a palavra aparece, 
+    e a normalização dos resultados.
+
+    O conjunto de teste também é transformado em vetores Tf-idf usando o mesmo vetorizador criado anteriormente. 
+    Isso é feito para garantir que os dados de teste sejam representados da mesma forma que os dados de treinamento.
+
+    Em seguida, os modelos de Regressão Logística, Naive Bayes e Random Forest são criados e treinados com os dados de treinamento usando a função "fit()" das classes "LogisticRegression()", 
+    "MultinomialNB()" e "RandomForestClassifier()". 
+    Depois que o modelo é treinado, ele é usado para prever as classes do conjunto de teste usando a função "predict()".
+
+    Finalmente, a métrica F1-score é calculada para avaliar a qualidade das previsões. O parâmetro "average" é definido como "macro" para calcular o F1-score médio ponderado pelas classes. 
+    Isso é importante porque, em um problema de classificação multiclasse, algumas classes podem ser menos frequentes do que outras e, portanto, têm menos influência no F1-score geral.
+
+    Em resumo, esse código é um exemplo de como utilizar a técnica de Regressão Logística e a técnica de vetorização de texto com Tf-idf para classificar dados de texto e avaliar a 
+    qualidade das previsões usando a métrica F1-score.
+    """
+
 
     # Usando TF-IDF
     for i in range(kfolds):
@@ -128,6 +151,25 @@ def run_rake(train_data, test_data, Y):
     f1scores_clr = []
     f1scores_cmnb = []
     f1scores_crf = []
+    """
+    A função "rake_tokenizer" utiliza a biblioteca RAKE para extrair as frases-chave de um texto. 
+    RAKE é uma técnica de extração de palavras-chave que considera a frequência das palavras e a coocorrência entre elas para identificar as frases mais importantes de um texto. 
+    A função "tokenizer" da classe "CountVectorizer" é utilizada para passar o texto através da função "rake_tokenizer" e gerar uma lista de frases-chave.
+
+    Em seguida, o objeto "CountVectorizer" é criado com a opção "tokenizer=rake_tokenizer" para vetorizar as frases-chave extraídas pelo RAKE.
+    O conjunto de treinamento é transformado em um conjunto de vetores usando a função "fit_transform()" do objeto "CountVectorizer", 
+    e o conjunto de teste é transformado em vetores usando a função "transform()".
+
+    Depois disso, dois modelos de classificação são aplicados nos conjuntos de vetores gerados. O primeiro modelo é uma Regressão Logística, criado com a classe "LogisticRegression()". 
+    O modelo é treinado com os dados de treinamento utilizando a função "fit()", e as previsões são feitas para o conjunto de teste utilizando a função "predict()". 
+    A métrica F1-score é calculada utilizando a função "f1_score()" para avaliar a qualidade das previsões.
+
+    O segundo modelo é um Naive Bayes Multinomial, criado com a classe "MultinomialNB()". O modelo é treinado da mesma forma que a Regressão Logística, 
+    e as previsões são feitas utilizando a função "predict()".
+
+    Finalmente, o código apresenta o valor da métrica F1-score para o modelo de Regressão Logística utilizando a técnica RAKE para vetorização de texto. 
+     É importante notar que esse código é apenas um exemplo e que outras técnicas de vetorização e modelos de classificação podem ser utilizados dependendo do problema em questão.
+    """
 
     for i in range(kfolds):
         X_train, X_test, y_train, y_test = train_test_split(train_data, Y, test_size=0.2, random_state=i)
