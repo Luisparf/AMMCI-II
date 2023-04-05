@@ -13,6 +13,9 @@ from sklearn.ensemble import RandomForestClassifier
 from rake_nltk import Rake
 # import RAKE
 from sklearn.feature_extraction.text import CountVectorizer
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+# nltk.download('vader_lexicon')
+
 
 import matplotlib.pyplot as plt
 
@@ -45,9 +48,9 @@ def load_data():
     
     data = pd.read_csv('train.csv')
     train_data = data['selected_text'].apply(lambda x: clean_text(x))
-    text_data = data['text'].apply(lambda x: clean_text(x))
+    test_data = data['text'].apply(lambda x: clean_text(x))
     target = data['sentiment']
-    return train_data, text_data, target
+    return train_data, test_data, target
 
 ######################################################################################################
 
@@ -227,3 +230,20 @@ def run_rake(train_data, test_data, Y):
 
     plt.show()
 
+######################################################################################################
+
+def sentiment_score():
+
+    sentiments = SentimentIntensityAnalyzer()
+
+    data = pd.read_csv('train.csv')
+    data['text'] = data['selected_text'].apply(lambda x: clean_text(x))
+
+    data["Positive"] = [sentiments.polarity_scores(i)["pos"] for i in data["text"]]
+    data["Negative"] = [sentiments.polarity_scores(i)["neg"] for i in data["text"]]
+    data["Neutral"] = [sentiments.polarity_scores(i)["neu"] for i in data["text"]]
+    data = data[["text", "Positive", 
+             "Negative", "Neutral"]]
+    print(data.head(30))
+
+######################################################################################################
