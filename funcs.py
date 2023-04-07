@@ -11,10 +11,14 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.ensemble import RandomForestClassifier
 from rake_nltk import Rake
+from PIL import Image
+import numpy as np
+
 # import RAKE
 from sklearn.feature_extraction.text import CountVectorizer
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 # nltk.download('vader_lexicon')
+# from wordcloud import WordCloud, STOPWORDS
 
 
 import matplotlib.pyplot as plt
@@ -46,8 +50,10 @@ def clean_text(text):
 
 def load_data():
     
+    train_data = ''
     data = pd.read_csv('train.csv')
-    train_data = data['selected_text'].apply(lambda x: clean_text(x))
+    print(data.head(10))
+    # train_data = data['selected_text'].apply(lambda x: clean_text(x))
     test_data = data['text'].apply(lambda x: clean_text(x))
     target = data['sentiment']
     return train_data, test_data, target
@@ -55,12 +61,7 @@ def load_data():
 ######################################################################################################
 
 def run_tfidf(train_data, test_data, Y):
-
-    kfolds = 10
-    f1scores_clr = []
-    f1scores_cmnb = []
-    f1scores_crf = []
-
+    
     """
     O primeiro passo é dividir o conjunto de dados em conjuntos de treinamento e teste, usando a função "train_test_split" da biblioteca "sklearn". 
     O parâmetro "test_size" define a proporção do conjunto de teste em relação ao conjunto de dados total e "random_state" é usado para controlar a 
@@ -84,11 +85,15 @@ def run_tfidf(train_data, test_data, Y):
     qualidade das previsões usando a métrica F1-score.
     """
 
+    kfolds = 10
+    f1scores_clr = []
+    f1scores_cmnb = []
+    f1scores_crf = []
 
     # Usando TF-IDF
     for i in range(kfolds):
+        X_train, X_test, y_train, y_test = train_test_split(test_data, Y, test_size=0.2, random_state=i)
         # X_train, _, y_train, _ = train_test_split(train_data, Y, test_size=0.2, random_state=i)
-        X_train, X_test, y_train, y_test = train_test_split(train_data, Y, test_size=0.2, random_state=i)
         # _, X_test, _, y_test = train_test_split(test_data, Y, test_size=0.2, random_state=i)
         tfidf_vectorizer = TfidfVectorizer()
         X_train_tfidf = tfidf_vectorizer.fit_transform(X_train)
@@ -133,7 +138,7 @@ def run_tfidf(train_data, test_data, Y):
     # for i, j in zip(range(kfolds), f1scores_clr):
     #     plt.annotate(f'{j * 100:.2f}%', xy=(i,j), xytext =(0.1 * offset, -offset * 0.5),  
     #         textcoords ='offset points',ha='center', va='bottom')
-    plt.savefig('tf-idf.png')
+    plt.savefig('tf-idf_3.png')
 
     plt.show()
 
@@ -149,11 +154,7 @@ def rake_tokenizer(text):
 
 def run_rake(train_data, test_data, Y):
 
-    kfolds = 10
-
-    f1scores_clr = []
-    f1scores_cmnb = []
-    f1scores_crf = []
+  
     """
     A função "rake_tokenizer" utiliza a biblioteca RAKE para extrair as frases-chave de um texto. 
     RAKE é uma técnica de extração de palavras-chave que considera a frequência das palavras e a coocorrência entre elas para identificar as frases mais importantes de um texto. 
@@ -174,8 +175,16 @@ def run_rake(train_data, test_data, Y):
      É importante notar que esse código é apenas um exemplo e que outras técnicas de vetorização e modelos de classificação podem ser utilizados dependendo do problema em questão.
     """
 
+    kfolds = 10
+    f1scores_clr = []
+    f1scores_cmnb = []
+    f1scores_crf = []
+
     for i in range(kfolds):
-        X_train, X_test, y_train, y_test = train_test_split(train_data, Y, test_size=0.2, random_state=i)
+        # X_train, _, y_train, _ = train_test_split(train_data, Y, test_size=0.2, random_state=i)
+        # _, X_test, _, y_test = train_test_split(test_data, Y, test_size=0.2, random_state=i)
+        X_train, X_test, y_train, y_test = train_test_split(test_data, Y, test_size=0.2, random_state=i)
+
 
         # Vectorize the text data using RAKE
         # rake = Rake()
@@ -226,7 +235,7 @@ def run_rake(train_data, test_data, Y):
     plt.xticks(range(kfolds))
     # plt.axhline(y=mean_f1score, color='r', linestyle='-', label=f'Average F1 Score {mean_f1score* 100:.2f} %')
     plt.legend()
-    plt.savefig('rake.png')
+    plt.savefig('rake_2.png')
 
     plt.show()
 
@@ -237,7 +246,8 @@ def sentiment_score():
     sentiments = SentimentIntensityAnalyzer()
 
     data = pd.read_csv('train.csv')
-    data['text'] = data['selected_text'].apply(lambda x: clean_text(x))
+    data['text'] = data['text'].apply(lambda x: clean_text(x))
+    # data['selected_text'] = data['text'].apply(lambda x: clean_text(x))
 
     data["Positive"] = [sentiments.polarity_scores(i)["pos"] for i in data["text"]]
     data["Negative"] = [sentiments.polarity_scores(i)["neg"] for i in data["text"]]
@@ -247,3 +257,24 @@ def sentiment_score():
     print(data.head(30))
 
 ######################################################################################################
+
+def word_clo():
+
+    data = pd.read_csv('train.csv')
+    data['text'] = data['text'].apply(lambda x: clean_text(x))
+    data['selected_text'] = data['selected_text'].apply(lambda x: clean_text(x))
+
+    twitter_mask = np.array(Image.open("test.png"))
+
+    text = " ".join(i for i in data.text)
+
+    stopwords = set(STOPWORDS)
+
+    wordcloud = WordCloud(stopwords=stopwords, background_color="black", mask=twitter_mask, width=1600, height=800, max_words=2000, 
+                          min_font_size=1, max_font_size=200).generate(text)
+
+    plt.figure( figsize=(16,8))
+
+    plt.imshow(wordcloud, interpolation='bilinear')
+    plt.axis("off")
+    plt.show()
