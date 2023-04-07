@@ -51,16 +51,24 @@ def clean_text(text):
 def load_data():
     
     train_data = ''
-    data = pd.read_csv('train.csv')
-    print(data.head(10))
+    train_data = pd.read_csv('train.csv')
+    test_data = pd.read_csv('test.csv')
+    # print(data.head(10))
+  
     # train_data = data['selected_text'].apply(lambda x: clean_text(x))
-    test_data = data['text'].apply(lambda x: clean_text(x))
-    target = data['sentiment']
-    return train_data, test_data, target
+    train_data['selected_text'] = train_data['selected_text'].apply(lambda x: clean_text(x))
+    train_data['text'] = train_data['text'].apply(lambda x: clean_text(x))
+    test_data['text']  = test_data['text'].apply(lambda x: clean_text(x))
+    train_target = train_data['sentiment']
+    test_target = test_data['sentiment']
+    test_data = test_data['text']
+    train_data['features'] = train_data['selected_text'] + ' ' + train_data['text']
+
+    return train_data['features'], test_data, train_target, test_target
 
 ######################################################################################################
 
-def run_tfidf(train_data, test_data, Y):
+def run_tfidf(train_data, test_data, train_target, test_target):
     
     """
     O primeiro passo é dividir o conjunto de dados em conjuntos de treinamento e teste, usando a função "train_test_split" da biblioteca "sklearn". 
@@ -90,11 +98,13 @@ def run_tfidf(train_data, test_data, Y):
     f1scores_cmnb = []
     f1scores_crf = []
 
+
     # Usando TF-IDF
     for i in range(kfolds):
-        X_train, X_test, y_train, y_test = train_test_split(test_data, Y, test_size=0.2, random_state=i)
-        # X_train, _, y_train, _ = train_test_split(train_data, Y, test_size=0.2, random_state=i)
-        # _, X_test, _, y_test = train_test_split(test_data, Y, test_size=0.2, random_state=i)
+        # X_train, X_test, y_train, y_test = train_test_split(test_data, Y, test_size=0.2, random_state=i)
+        
+        X_train, _, y_train, _ = train_test_split(train_data, train_target, test_size=0.1, random_state=i)
+        _, X_test, _, y_test = train_test_split(test_data, test_target, test_size=0.1, random_state=i)
         tfidf_vectorizer = TfidfVectorizer()
         X_train_tfidf = tfidf_vectorizer.fit_transform(X_train)
         X_test_tfidf = tfidf_vectorizer.transform(X_test)
@@ -138,7 +148,7 @@ def run_tfidf(train_data, test_data, Y):
     # for i, j in zip(range(kfolds), f1scores_clr):
     #     plt.annotate(f'{j * 100:.2f}%', xy=(i,j), xytext =(0.1 * offset, -offset * 0.5),  
     #         textcoords ='offset points',ha='center', va='bottom')
-    plt.savefig('tf-idf_3.png')
+    plt.savefig('tf-idf_final.png')
 
     plt.show()
 
@@ -152,7 +162,7 @@ def rake_tokenizer(text):
 ######################################################################################################
 
 
-def run_rake(train_data, test_data, Y):
+def run_rake(train_data, test_data, train_target, test_target):
 
   
     """
@@ -183,8 +193,9 @@ def run_rake(train_data, test_data, Y):
     for i in range(kfolds):
         # X_train, _, y_train, _ = train_test_split(train_data, Y, test_size=0.2, random_state=i)
         # _, X_test, _, y_test = train_test_split(test_data, Y, test_size=0.2, random_state=i)
-        X_train, X_test, y_train, y_test = train_test_split(test_data, Y, test_size=0.2, random_state=i)
-
+        # X_train, X_test, y_train, y_test = train_test_split(test_data, Y, test_size=0.2, random_state=i)
+        X_train, _, y_train, _ = train_test_split(train_data, train_target, test_size=0.1, random_state=i)
+        _, X_test, _, y_test = train_test_split(test_data, test_target, test_size=0.1, random_state=i)
 
         # Vectorize the text data using RAKE
         # rake = Rake()
@@ -235,7 +246,7 @@ def run_rake(train_data, test_data, Y):
     plt.xticks(range(kfolds))
     # plt.axhline(y=mean_f1score, color='r', linestyle='-', label=f'Average F1 Score {mean_f1score* 100:.2f} %')
     plt.legend()
-    plt.savefig('rake_2.png')
+    plt.savefig('rake_final.png')
 
     plt.show()
 
@@ -263,6 +274,8 @@ def word_clo():
     data = pd.read_csv('train.csv')
     data['text'] = data['text'].apply(lambda x: clean_text(x))
     data['selected_text'] = data['selected_text'].apply(lambda x: clean_text(x))
+    data = pd.concat([data['selected_text'], data['text']], axis=1)
+
 
     twitter_mask = np.array(Image.open("test.png"))
 
