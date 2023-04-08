@@ -4,7 +4,7 @@ import string
 import nltk
 from nltk.corpus import stopwords
 import pandas as pd
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score,accuracy_score, confusion_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
@@ -13,6 +13,8 @@ from sklearn.ensemble import RandomForestClassifier
 from rake_nltk import Rake
 from PIL import Image
 import numpy as np
+from sklearn.model_selection import GridSearchCV
+from sklearn.pipeline import Pipeline
 
 # import RAKE
 from sklearn.feature_extraction.text import CountVectorizer
@@ -45,22 +47,29 @@ def clean_text(text):
     return text
 
 
-
 ######################################################################################################
 
 def load_data():
     
-    train_data = ''
+    # train_data = ''
     train_data = pd.read_csv('train.csv')
     test_data = pd.read_csv('test.csv')
-    # print(data.head(10))
-  
+    # print()
+    # print(train_data.head(10))
+    # print()
+
     # train_data = data['selected_text'].apply(lambda x: clean_text(x))
     train_data['selected_text'] = train_data['selected_text'].apply(lambda x: clean_text(x))
     train_data['text'] = train_data['text'].apply(lambda x: clean_text(x))
     test_data['text']  = test_data['text'].apply(lambda x: clean_text(x))
     train_target = train_data['sentiment']
     test_target = test_data['sentiment']
+    counts = train_target.value_counts()
+    counts1 = test_target.value_counts()
+    print(f'\n\nBase de treino:\n{counts}')
+    print(f'\nBase de teste:\n{counts1}\n')
+   
+
     test_data = test_data['text']
     train_data['features'] = train_data['selected_text'] + ' ' + train_data['text']
 
@@ -90,169 +99,224 @@ def run_tfidf(train_data, test_data, train_target, test_target):
     Isso é importante porque, em um problema de classificação multiclasse, algumas classes podem ser menos frequentes do que outras e, portanto, têm menos influência no F1-score geral.
 
     Em resumo, esse código é um exemplo de como utilizar a técnica de Regressão Logística e a técnica de vetorização de texto com Tf-idf para classificar dados de texto e avaliar a 
-    qualidade das previsões usando a métrica F1-score.
+    qualidade das previsões usando a métrica accuracy_score.
     """
 
     kfolds = 10
-    f1scores_clr = []
-    f1scores_cmnb = []
-    f1scores_crf = []
+    # f1scores_clr = []
+    # f1scores_cmnb = []
+    # f1scores_crf = []
+    accuracies_clr = []
+    accuracies_cmnb = []
+    accuracies_crf = []
 
 
     # Usando TF-IDF
     for i in range(kfolds):
         # X_train, X_test, y_train, y_test = train_test_split(test_data, Y, test_size=0.2, random_state=i)
         
-        X_train, _, y_train, _ = train_test_split(train_data, train_target, test_size=0.1, random_state=i)
-        _, X_test, _, y_test = train_test_split(test_data, test_target, test_size=0.1, random_state=i)
+        X_train, _, y_train, _ = train_test_split(train_data, train_target, test_size=0.01, random_state=i)
+        _, X_test, _, y_test = train_test_split(test_data, test_target, test_size=0.99, random_state=i)
         tfidf_vectorizer = TfidfVectorizer()
         X_train_tfidf = tfidf_vectorizer.fit_transform(X_train)
         X_test_tfidf = tfidf_vectorizer.transform(X_test)
-        
+
+        """Os parâmetros de cada método  são ajustados de acordo com o grid search:"""
         ## Regressão logística
-        clr = LogisticRegression()
+        clr = LogisticRegression(penalty='l2', solver='lbfgs', max_iter=2000)
         clr.fit(X_train_tfidf, y_train)
         y_pred = clr.predict(X_test_tfidf)
-        f1score_clr = f1_score(y_test, y_pred, average='macro')
-        f1scores_clr.append(f1score_clr)
-        print(f1score_clr)
+        """O f1_score é uma métrica que leva em consideração tanto a precisão quanto o recall do modelo.
+        A precisão é a proporção de amostras classificadas corretamente para uma classe específica em relação 
+        ao número total de amostras classificadas para essa classe. O recall é a proporção de amostras classificadas corretamente para uma 
+        classe específica em relação ao número total de amostras que realmente pertencem a essa classe. O  f1_score é uma média harmônica 
+        dessas duas métricas e é uma medida mais robusta para problemas de classificação desbalanceados.
+        """
+        # f1score_clr = f1_score(y_test, y_pred, average='macro')
+        # f1scores_clr.append(f1score_clr)
+        # print(f1score_clr)
+         ##
+        accuracy_clr = accuracy_score(y_test, y_pred)
+        print('Accuracy clr:', accuracy_clr)
+        accuracies_clr.append(accuracy_clr)
+        
 
         ## Naive Bayes
-        cmnb = MultinomialNB()
+        cmnb = MultinomialNB(alpha=1.0, fit_prior=False)
         cmnb.fit(X_train_tfidf, y_train)
         y_pred = cmnb.predict(X_test_tfidf)
-        f1score_cmnb = f1_score(y_test, y_pred, average='macro')
-        f1scores_cmnb.append(f1score_cmnb)
-        print(f1score_cmnb)
+        # f1score_cmnb = f1_score(y_test, y_pred, average='macro')
+        # f1scores_cmnb.append(f1score_cmnb)
+        # print(f1score_cmnb)
+          ##
+        accuracy_cmnb = accuracy_score(y_test, y_pred)
+        print('Accuracy cmnb:', accuracy_cmnb)
+        accuracies_cmnb.append(accuracy_cmnb)
+
 
         ## Random Forest
-        crf = RandomForestClassifier(n_estimators=100)
+        crf = RandomForestClassifier(max_depth=None, n_estimators=500)
         crf.fit(X_train_tfidf, y_train)
         y_pred = crf.predict(X_test_tfidf)
-        f1score_crf = f1_score(y_test, y_pred, average='macro')
-        f1scores_crf.append(f1score_crf)
-        print(f1score_crf)
+        # f1score_crf = f1_score(y_test, y_pred, average='macro')
+        # f1scores_crf.append(f1score_crf)
+        # print(f1score_crf)
+              ##
+        accuracy_crf = accuracy_score(y_test, y_pred)
+        print('Accuracy crf:', accuracy_crf)
+        accuracies_crf.append(accuracy_crf)
+
+
+    # plt.grid(True)
+    # plt.plot(range(kfolds), f1scores_clr, marker='o', linestyle='dashed', label=f'Average LR Score {np.mean(f1scores_clr) * 100:.2f}%', color='purple')
+    # plt.plot(range(kfolds), f1scores_cmnb, marker='o', linestyle='dashed', label=f'Average NB Score {np.mean(f1scores_cmnb) * 100:.2f}%', color='red')
+    # plt.plot(range(kfolds), f1scores_crf, marker='o', linestyle='dashed', label=f'Average RF Score {np.mean(f1scores_crf) * 100:.2f}%', color='green')
+    # plt.xlabel('Fold')
+    # plt.ylabel('F1 Score')
+    # plt.title(f'F1 Scores of {kfolds}-fold Cross Validation TF-IDF')
+    # plt.xticks(range(kfolds))
+    # # plt.axhline(y=mean_f1score, color='r', linestyle='-', label=f'Average F1 Score {mean_f1score* 100:.2f} %')
+    # plt.legend()
+    # plt.savefig('tfidf_f1_final.png')
+    # plt.show()
 
     plt.grid(True)
-    plt.plot(range(kfolds), f1scores_clr, marker='o', linestyle='dashed', label=f'Average LR Score {f1score_clr * 100:.2f}%', color='purple')
-    plt.plot(range(kfolds), f1scores_cmnb, marker='o', linestyle='dashed', label=f'Average NB Score {f1score_cmnb * 100:.2f}%', color='red')
-    plt.plot(range(kfolds), f1scores_crf, marker='o', linestyle='dashed', label=f'Average RF Score {f1score_crf * 100:.2f}%', color='green')
+    plt.plot(range(kfolds), accuracies_clr, marker='o', linestyle='dashed', label=f'Average LR Accuracy {np.mean(accuracies_clr) * 100:.2f}%', color='purple')
+    plt.plot(range(kfolds), accuracies_cmnb, marker='o', linestyle='dashed', label=f'Average NB Accuracy {np.mean(accuracies_cmnb) * 100:.2f}%', color='red')
+    plt.plot(range(kfolds), accuracies_crf, marker='o', linestyle='dashed', label=f'Average RF Accuracy {np.mean(accuracies_crf) * 100:.2f}%', color='green')
     plt.xlabel('Fold')
-    plt.ylabel('F1 Score')
-    plt.title(f'F1 Scores of {kfolds}-fold Cross Validation with TF-IDF')
+    plt.ylabel('Accuracy')
+    plt.title(f'Accuracies of {kfolds}-fold Cross Validation TF-IDF')
     plt.xticks(range(kfolds))
     # plt.axhline(y=mean_f1score, color='r', linestyle='-', label=f'Average F1 Score {mean_f1score* 100:.2f} %')
     plt.legend()
-    # for i, score in enumerate(f1scores_clr):
-    #     plt.annotate(f'{score * 100:.2f}', xy=(i, score), xytext=(-10, 5), textcoords='offset points',ha='center', va='bottom')
-    # for i, j in zip(range(kfolds), f1scores_clr):
-    #     plt.annotate(f'{j * 100:.2f}%', xy=(i,j), xytext =(0.1 * offset, -offset * 0.5),  
-    #         textcoords ='offset points',ha='center', va='bottom')
-    plt.savefig('tf-idf_final.png')
-
+    plt.savefig('tfidf_accuracy_final.png')
     plt.show()
+
 
 ######################################################################################################
 
 def rake_tokenizer(text):
     rake = Rake()
-    rake.extract_keywords_from_text(text)
+    t = rake.extract_keywords_from_text(text)
     return rake.get_ranked_phrases()
 
 ######################################################################################################
 
 
-def run_rake(train_data, test_data, train_target, test_target):
+def run_count(train_data, test_data, train_target, test_target):
 
   
-    """
-    A função "rake_tokenizer" utiliza a biblioteca RAKE para extrair as frases-chave de um texto. 
-    RAKE é uma técnica de extração de palavras-chave que considera a frequência das palavras e a coocorrência entre elas para identificar as frases mais importantes de um texto. 
-    A função "tokenizer" da classe "CountVectorizer" é utilizada para passar o texto através da função "rake_tokenizer" e gerar uma lista de frases-chave.
-
-    Em seguida, o objeto "CountVectorizer" é criado com a opção "tokenizer=rake_tokenizer" para vetorizar as frases-chave extraídas pelo RAKE.
-    O conjunto de treinamento é transformado em um conjunto de vetores usando a função "fit_transform()" do objeto "CountVectorizer", 
-    e o conjunto de teste é transformado em vetores usando a função "transform()".
-
-    Depois disso, dois modelos de classificação são aplicados nos conjuntos de vetores gerados. O primeiro modelo é uma Regressão Logística, criado com a classe "LogisticRegression()". 
-    O modelo é treinado com os dados de treinamento utilizando a função "fit()", e as previsões são feitas para o conjunto de teste utilizando a função "predict()". 
-    A métrica F1-score é calculada utilizando a função "f1_score()" para avaliar a qualidade das previsões.
-
-    O segundo modelo é um Naive Bayes Multinomial, criado com a classe "MultinomialNB()". O modelo é treinado da mesma forma que a Regressão Logística, 
-    e as previsões são feitas utilizando a função "predict()".
-
-    Finalmente, o código apresenta o valor da métrica F1-score para o modelo de Regressão Logística utilizando a técnica RAKE para vetorização de texto. 
-     É importante notar que esse código é apenas um exemplo e que outras técnicas de vetorização e modelos de classificação podem ser utilizados dependendo do problema em questão.
-    """
-
     kfolds = 10
-    f1scores_clr = []
-    f1scores_cmnb = []
-    f1scores_crf = []
+    # f1scores_clr = []
+    # f1scores_cmnb = []
+    # f1scores_crf = []
+    accuracies_clr = []
+    accuracies_cmnb = []
+    accuracies_crf = []
+
 
     for i in range(kfolds):
         # X_train, _, y_train, _ = train_test_split(train_data, Y, test_size=0.2, random_state=i)
         # _, X_test, _, y_test = train_test_split(test_data, Y, test_size=0.2, random_state=i)
         # X_train, X_test, y_train, y_test = train_test_split(test_data, Y, test_size=0.2, random_state=i)
-        X_train, _, y_train, _ = train_test_split(train_data, train_target, test_size=0.1, random_state=i)
-        _, X_test, _, y_test = train_test_split(test_data, test_target, test_size=0.1, random_state=i)
+        X_train, _, y_train, _ = train_test_split(train_data, train_target, test_size=0.01, random_state=i)
+        _, X_test, _, y_test = train_test_split(test_data, test_target, test_size=0.99, random_state=i)
 
-        # Vectorize the text data using RAKE
-        # rake = Rake()
-        vectorizer = CountVectorizer(tokenizer=rake_tokenizer)
+              
+        vectorizer = CountVectorizer()
         X_train_rake = vectorizer.fit_transform(X_train)
         X_test_rake = vectorizer.transform(X_test)
 
-        # Train a logistic regression model on the vectorized data
+        """
+        vectorizer = CountVectorizer() - cria um objeto CountVectorizer para converter as palavras em um vetor de contagem de palavras.
+
+        X_train_rake = vectorizer.fit_transform(X_train) - ajusta o vetorizador ao conjunto de treinamento X_train e 
+        transforma o conjunto de treinamento em um vetor de contagem de palavras. Isso significa que o vetorizador aprende o vocabulário 
+        do conjunto de treinamento e cria um vetor de contagem 
+        """
+
       
-      
+        """Os parâmetros de cada método  são ajustados de acordo com o grid search:"""
         ## Regressão logística
-        clr = LogisticRegression()
+        clr = LogisticRegression(penalty='l2', solver='lbfgs', max_iter=2000)
         clr.fit(X_train_rake, y_train)
         y_pred = clr.predict(X_test_rake)
-        f1score_clr = f1_score(y_test, y_pred, average='macro')
-        f1scores_clr.append(f1score_clr)
-        print(f1score_clr)
+        # f1score_clr = f1_score(y_test, y_pred, average='macro')
+        # f1scores_clr.append(f1score_clr)
+        # print(f1score_clr)
+        ##
+        accuracy_clr = accuracy_score(y_test, y_pred)
+        print('Accuracy clr:', accuracy_clr)
+        accuracies_clr.append(accuracy_clr)
 
         ## Naive Bayes
-        cmnb = MultinomialNB()
+        cmnb = MultinomialNB(alpha=1.0, fit_prior=False )
         cmnb.fit(X_train_rake, y_train)
         y_pred = cmnb.predict(X_test_rake)
-        f1score_cmnb = f1_score(y_test, y_pred, average='macro')
-        f1scores_cmnb.append(f1score_cmnb)
-        print(f1score_cmnb)
+        # f1score_cmnb = f1_score(y_test, y_pred, average='macro')
+        # f1scores_cmnb.append(f1score_cmnb)
+        # print(f1score_cmnb)
+         ##
+        accuracy_cmnb = accuracy_score(y_test, y_pred)
+        print('Accuracy cmnb:', accuracy_cmnb)
+        accuracies_cmnb.append(accuracy_cmnb)
+
 
         ## Random Forest
-        crf = RandomForestClassifier(n_estimators=100)
+        crf = RandomForestClassifier(max_depth=None, n_estimators=500)
         crf.fit(X_train_rake, y_train)
         y_pred = crf.predict(X_test_rake)
-        f1score_crf = f1_score(y_test, y_pred, average='macro')
-        f1scores_crf.append(f1score_crf)
-        print(f1score_crf)
+        # f1score_crf = f1_score(y_test, y_pred, average='macro')
+        # f1scores_crf.append(f1score_crf)
+        # print(f1score_crf)
+            ##
+        accuracy_crf = accuracy_score(y_test, y_pred)
+        print('Accuracy crf:', accuracy_crf)
+        accuracies_crf.append(accuracy_crf)
 
 
-
-    # mean_f1score = sum(f1scores_clr) / kfolds
-    # offset = 10
-
+    # plt.grid(True)
+    # plt.plot(range(kfolds), f1scores_clr, marker='o', linestyle='dashed', label=f'Average LR Score {np.mean(f1scores_clr) * 100:.2f}%', color='purple')
+    # plt.plot(range(kfolds), f1scores_cmnb, marker='o', linestyle='dashed', label=f'Average NB Score {np.mean(f1scores_cmnb) * 100:.2f}%', color='red')
+    # plt.plot(range(kfolds), f1scores_crf, marker='o', linestyle='dashed', label=f'Average RF Score {np.mean(f1scores_crf) * 100:.2f}%', color='green')
+    # plt.xlabel('Fold')
+    # plt.ylabel('F1 Score')
+    # plt.title(f'F1 Scores of {kfolds}-fold Cross Validation CountVectorizer')
+    # plt.xticks(range(kfolds))
+    # # plt.axhline(y=mean_f1score, color='r', linestyle='-', label=f'Average F1 Score {mean_f1score* 100:.2f} %')
+    # plt.legend()
+    # plt.savefig('count_f1_final.png')
+    # plt.show()
 
     plt.grid(True)
-    plt.plot(range(kfolds), f1scores_clr, marker='o', linestyle='dashed', label=f'Average LR Score {f1score_clr * 100:.2f}%', color='purple')
-    plt.plot(range(kfolds), f1scores_cmnb, marker='o', linestyle='dashed', label=f'Average NB Score {f1score_cmnb * 100:.2f}%', color='red')
-    plt.plot(range(kfolds), f1scores_crf, marker='o', linestyle='dashed', label=f'Average RF Score {f1score_crf * 100:.2f}%', color='green')
+    plt.plot(range(kfolds), accuracies_clr, marker='o', linestyle='dashed', label=f'Average LR Accuracy {np.mean(accuracies_clr) * 100:.2f}%', color='purple')
+    plt.plot(range(kfolds), accuracies_cmnb, marker='o', linestyle='dashed', label=f'Average NB Accuracy {np.mean(accuracies_cmnb) * 100:.2f}%', color='red')
+    plt.plot(range(kfolds), accuracies_crf, marker='o', linestyle='dashed', label=f'Average RF Accuracy {np.mean(accuracies_crf) * 100:.2f}%', color='green')
     plt.xlabel('Fold')
-    plt.ylabel('F1 Score')
-    plt.title(f'F1 Scores of {kfolds}-fold Cross Validation with RAKE')
+    plt.ylabel('Accuracy')
+    plt.title(f'Accuracies of {kfolds}-fold Cross Validation CountVectorizer')
     plt.xticks(range(kfolds))
     # plt.axhline(y=mean_f1score, color='r', linestyle='-', label=f'Average F1 Score {mean_f1score* 100:.2f} %')
     plt.legend()
-    plt.savefig('rake_final.png')
-
+    plt.savefig('count_accuracy_final.png')
     plt.show()
+
 
 ######################################################################################################
 
 def sentiment_score():
+    """SentimentIntensityAnalyzer é uma classe da biblioteca NLTK (Natural Language Toolkit) que é usada para analisar o sentimento de textos em inglês. 
+    Ele usa um modelo pré-treinado para calcular uma pontuação de sentimentos que varia de -1 a 1, onde um valor mais próximo de -1 indica um 
+    sentimento negativo e um valor mais próximo de 1 indica um sentimento positivo.
+
+     O SentimentIntensityAnalyzer usa um modelo de análise de sentimento baseado em regras, que é treinado em uma ampla gama de dados, 
+     incluindo análises de produtos, críticas de filmes e tweets. O modelo usa uma abordagem de análise léxica para atribuir uma pontuação 
+     de sentimento a cada palavra no texto e, em seguida, calcula uma pontuação agregada com base em todas as palavras no texto.
+
+    Além da pontuação geral de sentimento, o SentimentIntensityAnalyzer também fornece pontuações individuais para os 
+    sentimentos positivo, negativo, neutro e misto, bem como uma lista de tokens (palavras) com suas respectivas pontuações de sentimento.
+      Essas informações podem ser usadas para uma análise mais detalhada do sentimento do texto."""
 
     sentiments = SentimentIntensityAnalyzer()
 
@@ -291,3 +355,72 @@ def word_clo():
     plt.imshow(wordcloud, interpolation='bilinear')
     plt.axis("off")
     plt.show()
+
+######################################################################################################
+
+def describe():
+    
+    # Load the data into a Pandas DataFrame
+    data = pd.read_csv('test.csv')
+
+    # Clean the 'text' column by applying the 'clean_text' function
+    data['text'] = data['text'].apply(lambda x: clean_text(x))
+
+    # Remove rows with empty 'text' values
+    data = data[data['text'] != '']
+
+    # Calculate descriptive statistics for the 'text' column
+    text_stats = data['text'].describe()
+
+    # Calculate descriptive statistics for the 'sentiment' column
+    sentiment_stats = data['sentiment'].describe()
+
+    # Print the results
+    print("Text Statistics:\n", text_stats)
+    print("\nSentiment Statistics:\n", sentiment_stats)
+
+######################################################################################################
+
+def grid_search(train_data, test_data, train_target, test_target):
+
+    X_train, _, y_train, _ = train_test_split(train_data, train_target, test_size=0.01, random_state=5)
+    # _, X_test, _, y_test = train_test_split(test_data, test_target, test_size=0.99, random_state=5)
+
+    models = [
+        ('lr', LogisticRegression(max_iter=4000), {
+            'clf__penalty': [ 'l2', 'none'],
+            'clf__solver': ['lbfgs', 'sag', 'saga']
+        }),
+        ('nb', MultinomialNB(), {
+            'clf__alpha': [0.1, 1.0, 10.0],
+            'clf__fit_prior': [True, False]
+        }),
+        ('rf', RandomForestClassifier(), {
+            'clf__n_estimators': [10, 100, 500],
+            'clf__max_depth': [10, 50, None]
+        })
+    ]
+
+    # Itera por cada modelo e faz o grid search
+    for name, model, params in models:
+        # Cria um pipeline para vetorizar o texto e treina o modelo
+        pipe = Pipeline([
+            ('vect', TfidfVectorizer()),
+            ('clf', model)
+        ])
+
+        # Define os hiperparâmetros para a busca
+        parameters = {
+            'vect__ngram_range': [(1,1), (1,2)], 
+            **params
+        }
+
+        # Usa o GridSearchCV para buscar o melhor hiperparâmetro
+        grid_search = GridSearchCV(pipe, parameters, cv=5, n_jobs=-1, verbose=1)
+
+        # Ajusta o objeto GridSearchCV  para o treinamento:
+        grid_search.fit(X_train, y_train)
+
+        # Mostra o melhor parâmetro com o melhor score
+        print(f'\n\nBest score ({name}):', grid_search.best_score_)
+        print(f'Best parameters ({name}):\n\n', grid_search.best_params_)
